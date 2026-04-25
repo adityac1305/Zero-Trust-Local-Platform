@@ -1,0 +1,104 @@
+# ----------------------------
+# Python
+# ----------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Pip / build artifacts
+build/
+dist/
+*.egg-info/
+
+# ----------------------------
+# Environment / Secrets
+# ----------------------------
+.env
+.env.*
+*.env
+
+# Ansible / Vault secrets
+*.vault
+secrets.yml
+
+# ----------------------------
+# Kubernetes (optional)
+# ----------------------------
+*.kubeconfig
+kubeconfig
+*.log
+
+# ----------------------------
+# IDE / Editor
+# ----------------------------
+.vscode/
+.idea/
+
+# ----------------------------
+# OS files
+# ----------------------------
+.DS_Store
+Thumbs.db
+
+# ----------------------------
+# Logs
+# ----------------------------
+*.log
+
+# ----------------------------
+# Node (if you add frontend later)
+# ----------------------------
+node_modules/
+
+# ----------------------------
+# Temporary files
+# ----------------------------
+*.tmp
+*.bak
+
+
+# Local Vault Data 
+vault/local-vault-data/
+vault/local-vault-data/file/
+vault/local-vault-data/logs/
+vault/local-vault-data/*.db
+vault/local-vault-data/*.log
+
+# Docker Vault Data
+
+vault/docker-container-vault-data/
+vault/docker-container-vault-data/file/
+vault/docker-container-vault-data/logs/
+vault/docker-container-vault-data/*.db
+vault/docker-container-vault-data/*.log
+
+# Postgres data
+docker-data/
+
+# Docker
+*.pid
+*.sock
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.bak
+*~
+
+
+# draw.io backup files
+*.drawio.bak
+*.bak
+*.backup
+*.drawio.backup
