@@ -3,7 +3,7 @@ kind: Ingress
 metadata:
   name: fastapi-ingress
   annotations:
-    cert-manager.io/cluster-issuer: local-selfsigned
+    cert-manager.io/cluster-issuer: local-root-ca
 spec:
   ingressClassName: nginx
   tls:

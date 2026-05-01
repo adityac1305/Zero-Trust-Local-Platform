@@ -1,0 +1,66 @@
+auth:
+  existingSecret: keycloak-admin-secret
+  adminUser: admin
+  passwordSecretKey: admin-password
+
+image:
+  registry: docker.io
+  repository: bitnamilegacy/keycloak
+  tag: 26.1.4-debian-12-r0
+
+postgresql:
+  enabled: true
+  auth:
+    existingSecret: keycloak-admin-secret
+    secretKeys:
+      adminPasswordKey: admin-password
+      userPasswordKey: admin-password
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/postgresql
+    tag: 17.5.0-debian-12-r0
+
+service:
+  type: ClusterIP
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  hostname: keycloak.local
+  annotations:
+    cert-manager.io/cluster-issuer: local-root-ca
+  extraTls:
+    - hosts:
+        - keycloak.local
+      secretName: keycloak-tls
+
+extraEnvVars:
+  - name: KC_PROXY_HEADERS
+    value: "xforwarded"
+  - name: KC_HOSTNAME
+    value: "keycloak.local"
+  - name: KC_HTTP_ENABLED
+    value: "true"
+  - name: KEYCLOAK_DATABASE_HOST
+    value: "keycloak-postgresql"
+  - name: KEYCLOAK_DATABASE_PORT
+    value: "5432"
+  - name: KEYCLOAK_DATABASE_NAME
+    value: "bitnami_keycloak"
+  - name: KEYCLOAK_DATABASE_USER
+    value: "bn_keycloak"
+  - name: KEYCLOAK_DATABASE_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-admin-secret
+        key: admin-password
+  - name: KC_BOOTSTRAP_ADMIN_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-admin-secret
+        key: admin-user
+  - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-admin-secret
+        key: admin-password

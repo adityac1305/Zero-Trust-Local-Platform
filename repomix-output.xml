@@ -1,0 +1,303 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+app/main.py
+app/requirements.txt
+docker-compose.yml
+docker/Dockerfile
+k8s/apps/fastapi/deployment.yaml
+k8s/apps/fastapi/ingress.yaml
+k8s/apps/fastapi/service.yaml
+k8s/platform/cert-manager/cluster-issuer.yaml
+k8s/platform/metallb/ip-pool.yaml
+k8s/platform/metallb/l2-advertisement.yaml
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".gitignore">
+# ----------------------------
+# Python
+# ----------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Pip / build artifacts
+build/
+dist/
+*.egg-info/
+
+# ----------------------------
+# Environment / Secrets
+# ----------------------------
+.env
+.env.*
+*.env
+
+# Ansible / Vault secrets
+*.vault
+secrets.yml
+
+# ----------------------------
+# Kubernetes (optional)
+# ----------------------------
+*.kubeconfig
+kubeconfig
+*.log
+
+# ----------------------------
+# IDE / Editor
+# ----------------------------
+.vscode/
+.idea/
+
+# ----------------------------
+# OS files
+# ----------------------------
+.DS_Store
+Thumbs.db
+
+# ----------------------------
+# Logs
+# ----------------------------
+*.log
+
+# ----------------------------
+# Node (if you add frontend later)
+# ----------------------------
+node_modules/
+
+# ----------------------------
+# Temporary files
+# ----------------------------
+*.tmp
+*.bak
+
+
+# Local Vault Data 
+vault/local-vault-data/
+vault/local-vault-data/file/
+vault/local-vault-data/logs/
+vault/local-vault-data/*.db
+vault/local-vault-data/*.log
+
+# Docker Vault Data
+
+vault/docker-container-vault-data/
+vault/docker-container-vault-data/file/
+vault/docker-container-vault-data/logs/
+vault/docker-container-vault-data/*.db
+vault/docker-container-vault-data/*.log
+
+# Postgres data
+docker-data/
+
+# Docker
+*.pid
+*.sock
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.bak
+*~
+
+
+# draw.io backup files
+*.drawio.bak
+*.bak
+*.backup
+*.drawio.backup
+</file>
+
+<file path="app/main.py">
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello Zero Trust FastAPI"}
+</file>
+
+<file path="app/requirements.txt">
+fastapi
+uvicorn
+</file>
+
+<file path="docker/Dockerfile">
+FROM python:3.12
+
+WORKDIR /app
+
+COPY app/ /app/
+
+RUN pip install -r requirements.txt
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+</file>
+
+<file path="k8s/apps/fastapi/deployment.yaml">
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastapi
+  template:
+    metadata:
+      labels:
+        app: fastapi
+    spec:
+      containers:
+      - name: fastapi
+        image: fastapi-app:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+</file>
+
+<file path="k8s/apps/fastapi/ingress.yaml">
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fastapi-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: local-root-ca
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - fastapi.local
+    secretName: fastapi-tls
+  rules:
+  - host: fastapi.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: fastapi-service
+            port:
+              number: 80
+</file>
+
+<file path="k8s/apps/fastapi/service.yaml">
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-service
+spec:
+  selector:
+    app: fastapi
+  ports:
+  - port: 80
+    targetPort: 8000
+</file>
+
+<file path="k8s/platform/cert-manager/cluster-issuer.yaml">
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: local-selfsigned
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: local-root-ca
+spec:
+  ca:
+    secretName: root-ca-secret
+</file>
+
+<file path="k8s/platform/metallb/ip-pool.yaml">
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: default-pool
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.65.240-192.168.65.250
+</file>
+
+<file path="k8s/platform/metallb/l2-advertisement.yaml">
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: default
+  namespace: metallb-system
+</file>
+
+<file path="docker-compose.yml">
+#version: '3.8'
+
+services:
+  fastapi:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+</file>
+
+</files>
