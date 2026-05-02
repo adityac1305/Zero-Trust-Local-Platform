@@ -1,25 +1,26 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: fastapi-ingress
+  name: keycloak-auth
+  namespace: keycloak   # IMPORTANT FIX
   annotations:
     cert-manager.io/cluster-issuer: local-root-ca
     cert-manager.io/duration: 168h
     cert-manager.io/renew-before: 24h
 spec:
   ingressClassName: nginx
-  tls:
-  - hosts:
-    - fastapi.local
-    secretName: fastapi-tls
   rules:
-  - host: fastapi.local
+  - host: auth.local
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: fastapi-service
+            name: keycloak
             port:
               number: 80
+  tls:
+  - hosts:
+    - auth.local
+    secretName: auth-tls

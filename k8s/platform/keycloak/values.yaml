@@ -23,16 +23,19 @@ postgresql:
 service:
   type: ClusterIP
 
-ingress:
-  enabled: true
-  ingressClassName: nginx
-  hostname: keycloak.local
-  annotations:
-    cert-manager.io/cluster-issuer: local-root-ca
-  extraTls:
-    - hosts:
-        - keycloak.local
-      secretName: keycloak-tls
+
+#ingress:
+#  enabled: true
+#  ingressClassName: nginx
+#  hostname: keycloak.local
+#  annotations:
+#    cert-manager.io/cluster-issuer: local-root-ca
+#    cert-manager.io/duration: 168h
+#    cert-manager.io/renew-before: 24h
+#  extraTls:
+#    - hosts:
+#        - keycloak.local
+#      secretName: keycloak-tls
 
 extraEnvVars:
   - name: KC_PROXY_HEADERS
