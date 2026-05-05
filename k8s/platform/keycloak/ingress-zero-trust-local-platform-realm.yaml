@@ -1,26 +1,30 @@
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: keycloak-auth
-  namespace: keycloak   # IMPORTANT FIX
-  annotations:
-    cert-manager.io/cluster-issuer: local-root-ca
-    cert-manager.io/duration: 168h
-    cert-manager.io/renew-before: 24h
-spec:
-  ingressClassName: nginx
-  rules:
-  - host: auth.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: keycloak
-            port:
-              number: 80
-  tls:
-  - hosts:
-    - auth.local
-    secretName: auth-tls
+# keycloak-auth ingress is not being used as we wanted to follow the routing of auth.local via oauth2-proxy ingress.yaml so it goes to the zero-trust-local-platform realm
+# That is why the following ingress.yaml is not used
+
+#apiVersion: networking.k8s.io/v1
+#kind: Ingress
+#metadata:
+#  name: keycloak-auth
+#  namespace: keycloak
+#  annotations:
+#    cert-manager.io/cluster-issuer: local-root-ca
+#    cert-manager.io/duration: 168h
+#    cert-manager.io/renew-before: 24h
+#
+#spec:
+#  ingressClassName: nginx
+#  rules:
+#  - host: auth.local
+#    http:
+#      paths:
+#      - path: /
+#        pathType: Prefix
+#        backend:
+#          service:
+#            name: keycloak
+#            port:
+#              number: 80
+#  tls:
+#  - hosts:
+#    - auth.local
+#    secretName: auth-tls

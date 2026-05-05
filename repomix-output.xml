@@ -41,6 +41,7 @@ The content is organized as follows:
 
 <directory_structure>
 .gitignore
+.pre-commit-config.yaml
 app/main.py
 app/requirements.txt
 docker-compose.yml
@@ -49,12 +50,91 @@ k8s/apps/fastapi/deployment.yaml
 k8s/apps/fastapi/ingress.yaml
 k8s/apps/fastapi/service.yaml
 k8s/platform/cert-manager/cluster-issuer.yaml
+k8s/platform/keycloak/ingress-master-realm.yaml
+k8s/platform/keycloak/ingress-zero-trust-local-platform-realm.yaml
+k8s/platform/keycloak/values.yaml
 k8s/platform/metallb/ip-pool.yaml
 k8s/platform/metallb/l2-advertisement.yaml
+k8s/platform/oauth2-proxy/ingress.yaml
+k8s/platform/oauth2-proxy/values.yaml
+repo_structure.txt
 </directory_structure>
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path=".pre-commit-config.yaml">
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+</file>
+
+<file path="k8s/platform/oauth2-proxy/ingress.yaml">
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: oauth2-proxy
+  namespace: oauth2-proxy
+  annotations:
+    cert-manager.io/cluster-issuer: local-root-ca
+    cert-manager.io/duration: 168h
+    cert-manager.io/renew-before: 24h
+    # --- ADD THESE TO FIX THE 502 ---
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
+    nginx.ingress.kubernetes.io/proxy-busy-buffers-size: "32k"
+    # --------------------------------
+
+spec:
+  ingressClassName: nginx
+
+  tls:
+    - hosts:
+        - auth.local
+      secretName: auth-tls
+
+  rules:
+    - host: auth.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: oauth2-proxy
+                port:
+                  number: 80
+</file>
+
+<file path="k8s/platform/oauth2-proxy/values.yaml">
+config:
+  clientID: "oauth2-proxy"
+  existingSecret: "oauth2-proxy-secrets"
+
+extraArgs:
+  provider: oidc
+  oidc-issuer-url: https://keycloak.local/realms/zero-trust-local-platform
+  ssl-insecure-skip-verify: "true"
+  redirect-url: https://auth.local/oauth2/callback
+  email-domain: "*"
+  cookie-secure: "true"
+  cookie-samesite: "lax"
+  skip-provider-button: "true"
+  insecure-oidc-skip-issuer-verification: "true"
+
+hostAliases:
+  - ip: "192.168.65.240"
+    hostnames:
+      - "keycloak.local"
+
+service:
+  type: ClusterIP
+
+ingress:
+  enabled: false   # IMPORTANT: we are managing ingress manually
+</file>
 
 <file path=".gitignore">
 # ----------------------------
@@ -213,32 +293,6 @@ spec:
         - containerPort: 8000
 </file>
 
-<file path="k8s/apps/fastapi/ingress.yaml">
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: fastapi-ingress
-  annotations:
-    cert-manager.io/cluster-issuer: local-root-ca
-spec:
-  ingressClassName: nginx
-  tls:
-  - hosts:
-    - fastapi.local
-    secretName: fastapi-tls
-  rules:
-  - host: fastapi.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: fastapi-service
-            port:
-              number: 80
-</file>
-
 <file path="k8s/apps/fastapi/service.yaml">
 apiVersion: v1
 kind: Service
@@ -252,21 +306,66 @@ spec:
     targetPort: 8000
 </file>
 
-<file path="k8s/platform/cert-manager/cluster-issuer.yaml">
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
+<file path="k8s/platform/keycloak/ingress-master-realm.yaml">
+apiVersion: networking.k8s.io/v1
+kind: Ingress
 metadata:
-  name: local-selfsigned
+  name: keycloak-ingress
+  namespace: keycloak
+  annotations:
+    cert-manager.io/cluster-issuer: local-root-ca
+    cert-manager.io/duration: 168h
+    cert-manager.io/renew-before: 24h
 spec:
-  selfSigned: {}
----
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: local-root-ca
-spec:
-  ca:
-    secretName: root-ca-secret
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - keycloak.local
+      secretName: keycloak-tls
+  rules:
+    - host: keycloak.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  number: 80
+</file>
+
+<file path="k8s/platform/keycloak/ingress-zero-trust-local-platform-realm.yaml">
+# keycloak-auth ingress is not being used as we wanted to follow the routing of auth.local via oauth2-proxy ingress.yaml so it goes to the zero-trust-local-platform realm
+# That is why the following ingress.yaml is not used
+
+#apiVersion: networking.k8s.io/v1
+#kind: Ingress
+#metadata:
+#  name: keycloak-auth
+#  namespace: keycloak
+#  annotations:
+#    cert-manager.io/cluster-issuer: local-root-ca
+#    cert-manager.io/duration: 168h
+#    cert-manager.io/renew-before: 24h
+#
+#spec:
+#  ingressClassName: nginx
+#  rules:
+#  - host: auth.local
+#    http:
+#      paths:
+#      - path: /
+#        pathType: Prefix
+#        backend:
+#          service:
+#            name: keycloak
+#            port:
+#              number: 80
+#  tls:
+#  - hosts:
+#    - auth.local
+#    secretName: auth-tls
 </file>
 
 <file path="k8s/platform/metallb/ip-pool.yaml">
@@ -286,6 +385,164 @@ kind: L2Advertisement
 metadata:
   name: default
   namespace: metallb-system
+</file>
+
+<file path="repo_structure.txt">
+Folder PATH listing for volume Data
+Volume serial number is C87A-83A4
+D:.
+|   .env
+|   .gitignore
+|   docker-compose.yml
+|   repomix-output.xml
+|   repo_structure.txt
+|   
++---app
+|       main.py
+|       requirements.txt
+|       
++---configs
++---docker
+|       Dockerfile
+|       
++---docs
+|   \---Diagrams
++---helm
++---k8s
+|   +---apps
+|   |   \---fastapi
+|   |           deployment.yaml
+|   |           ingress.yaml
+|   |           service.yaml
+|   |           
+|   \---platform
+|       +---cert-manager
+|       |       cluster-issuer.yaml
+|       |       
+|       +---ingress-nginx
+|       \---metallb
+|               ip-pool.yaml
+|               l2-advertisement.yaml
+|               
++---opentofu
+\---scripts
+</file>
+
+<file path="k8s/platform/cert-manager/cluster-issuer.yaml">
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: local-selfsigned
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: local-root-ca
+spec:
+  ca:
+    secretName: root-ca-secret
+</file>
+
+<file path="k8s/platform/keycloak/values.yaml">
+auth:
+  existingSecret: keycloak-admin-secret
+  adminUser: admin
+  passwordSecretKey: admin-password
+
+image:
+  registry: docker.io
+  repository: bitnamilegacy/keycloak
+  tag: 26.1.4-debian-12-r0
+
+postgresql:
+  enabled: true
+  auth:
+    existingSecret: keycloak-admin-secret
+    secretKeys:
+      adminPasswordKey: admin-password
+      userPasswordKey: admin-password
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/postgresql
+    tag: 17.5.0-debian-12-r0
+
+service:
+  type: ClusterIP
+
+
+#ingress:
+#  enabled: true
+#  ingressClassName: nginx
+#  hostname: keycloak.local
+#  annotations:
+#    cert-manager.io/cluster-issuer: local-root-ca
+#    cert-manager.io/duration: 168h
+#    cert-manager.io/renew-before: 24h
+#  extraTls:
+#    - hosts:
+#        - keycloak.local
+#      secretName: keycloak-tls
+
+extraEnvVars:
+  - name: KC_PROXY_HEADERS
+    value: "xforwarded"
+  - name: KC_HOSTNAME
+    value: "keycloak.local"
+  - name: KC_HTTP_ENABLED
+    value: "true"
+  - name: KEYCLOAK_DATABASE_HOST
+    value: "keycloak-postgresql"
+  - name: KEYCLOAK_DATABASE_PORT
+    value: "5432"
+  - name: KEYCLOAK_DATABASE_NAME
+    value: "bitnami_keycloak"
+  - name: KEYCLOAK_DATABASE_USER
+    value: "bn_keycloak"
+  - name: KEYCLOAK_DATABASE_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-admin-secret
+        key: admin-password
+  - name: KC_BOOTSTRAP_ADMIN_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-admin-secret
+        key: admin-user
+  - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-admin-secret
+        key: admin-password
+</file>
+
+<file path="k8s/apps/fastapi/ingress.yaml">
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fastapi-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: local-root-ca
+    cert-manager.io/duration: 168h
+    cert-manager.io/renew-before: 24h
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - fastapi.local
+    secretName: fastapi-tls
+  rules:
+  - host: fastapi.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: fastapi-service
+            port:
+              number: 80
 </file>
 
 <file path="docker-compose.yml">

@@ -1,0 +1,25 @@
+config:
+  clientID: "oauth2-proxy"
+  existingSecret: "oauth2-proxy-secrets"
+
+extraArgs:
+  provider: oidc
+  oidc-issuer-url: https://keycloak.local/realms/zero-trust-local-platform
+  ssl-insecure-skip-verify: "true"
+  redirect-url: https://auth.local/oauth2/callback
+  email-domain: "*"
+  cookie-secure: "true"
+  cookie-samesite: "lax"
+  skip-provider-button: "true"
+  insecure-oidc-skip-issuer-verification: "true"
+
+hostAliases:
+  - ip: "192.168.65.240"
+    hostnames:
+      - "keycloak.local"
+
+service:
+  type: ClusterIP
+
+ingress:
+  enabled: false   # IMPORTANT: we are managing ingress manually
