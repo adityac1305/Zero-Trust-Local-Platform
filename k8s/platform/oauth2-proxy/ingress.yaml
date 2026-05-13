@@ -18,11 +18,11 @@ spec:
 
   tls:
     - hosts:
-        - auth.local
+        - auth.test
       secretName: auth-tls
 
   rules:
-    - host: auth.local
+    - host: auth.test
       http:
         paths:
           - path: /

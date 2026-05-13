@@ -1,25 +1,76 @@
 config:
   clientID: "oauth2-proxy"
   existingSecret: "oauth2-proxy-secrets"
+  #cookieDomains: .test
 
 extraArgs:
   provider: oidc
-  oidc-issuer-url: https://keycloak.local/realms/zero-trust-local-platform
-  ssl-insecure-skip-verify: "true"
-  redirect-url: https://auth.local/oauth2/callback
+  oidc-issuer-url: https://keycloak.test/realms/zero-trust-local-platform
+  redirect-url: https://auth.test/oauth2/callback
+
+  #http-address: "0.0.0.0:4180"
+  
+  ssl-insecure-skip-verify: true
+  insecure-oidc-skip-issuer-verification: true
+
   email-domain: "*"
+  skip-provider-button: true
+
+
+  #upstream: "static://200"
+  #upstream: ""
+  upstream: "http://fastapi-service.default.svc.cluster.local:80"
+
+  #cookie-domain: "auth.local"
+  #cookie-domain: ".local"
+  #cookie-domain: .test
   cookie-secure: "true"
-  cookie-samesite: "lax"
-  skip-provider-button: "true"
-  insecure-oidc-skip-issuer-verification: "true"
+  cookie-samesite: "lax" # Change cookie-samesite from lax to none in values.yaml as chrome drops the CSRF cookie when we go to keycloak.local site
+  #cookie-path: "/"
+  #cookie-name: "_oauth2_proxy"
+  
+  #cookie-csrf-per-request: false
+  #cookie-csrf-expire: 30m
+
+
+
+
+  # oauth2-proxy must be aware it is behind ingress proxy
+  reverse-proxy: "true"
+
+
+  #trusted-ip: "0.0.0.0/0"
+
+
+  #real-client-ip-header: "X-Forwarded-For"
+
+  #pass-authorization-header: true
+  set-authorization-header: "true"
+  set-xauthrequest: "true"
+  pass-access-token: "true"
+  pass-user-headers: "true"
+
+  #proxy-prefix: /oauth2
+  #trusted-ip: 0.0.0.0/0
+
+
+  #whitelist-domain: "fastapi.local"
+  #whitelist-domain: ".test"
+
+  #skip-jwt-bearer-tokens: "true"
+
+  standard-logging: true
+  auth-logging: true
+  request-logging: true
+  show-debug-on-error: true
 
 hostAliases:
   - ip: "192.168.65.240"
     hostnames:
-      - "keycloak.local"
+      - "keycloak.test"
 
 service:
   type: ClusterIP
 
-ingress:
-  enabled: false   # IMPORTANT: we are managing ingress manually
+#ingress:
+#  enabled: false   # IMPORTANT: we are managing ingress manually

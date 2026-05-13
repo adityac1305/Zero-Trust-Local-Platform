@@ -63,79 +63,6 @@ repo_structure.txt
 <files>
 This section contains the contents of the repository's files.
 
-<file path=".pre-commit-config.yaml">
-repos:
-  - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.0
-    hooks:
-      - id: gitleaks
-</file>
-
-<file path="k8s/platform/oauth2-proxy/ingress.yaml">
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: oauth2-proxy
-  namespace: oauth2-proxy
-  annotations:
-    cert-manager.io/cluster-issuer: local-root-ca
-    cert-manager.io/duration: 168h
-    cert-manager.io/renew-before: 24h
-    # --- ADD THESE TO FIX THE 502 ---
-    nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
-    nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
-    nginx.ingress.kubernetes.io/proxy-busy-buffers-size: "32k"
-    # --------------------------------
-
-spec:
-  ingressClassName: nginx
-
-  tls:
-    - hosts:
-        - auth.local
-      secretName: auth-tls
-
-  rules:
-    - host: auth.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: oauth2-proxy
-                port:
-                  number: 80
-</file>
-
-<file path="k8s/platform/oauth2-proxy/values.yaml">
-config:
-  clientID: "oauth2-proxy"
-  existingSecret: "oauth2-proxy-secrets"
-
-extraArgs:
-  provider: oidc
-  oidc-issuer-url: https://keycloak.local/realms/zero-trust-local-platform
-  ssl-insecure-skip-verify: "true"
-  redirect-url: https://auth.local/oauth2/callback
-  email-domain: "*"
-  cookie-secure: "true"
-  cookie-samesite: "lax"
-  skip-provider-button: "true"
-  insecure-oidc-skip-issuer-verification: "true"
-
-hostAliases:
-  - ip: "192.168.65.240"
-    hostnames:
-      - "keycloak.local"
-
-service:
-  type: ClusterIP
-
-ingress:
-  enabled: false   # IMPORTANT: we are managing ingress manually
-</file>
-
 <file path=".gitignore">
 # ----------------------------
 # Python
@@ -243,6 +170,14 @@ Thumbs.db
 *.drawio.backup
 </file>
 
+<file path=".pre-commit-config.yaml">
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+</file>
+
 <file path="app/main.py">
 from fastapi import FastAPI
 
@@ -335,39 +270,6 @@ spec:
                   number: 80
 </file>
 
-<file path="k8s/platform/keycloak/ingress-zero-trust-local-platform-realm.yaml">
-# keycloak-auth ingress is not being used as we wanted to follow the routing of auth.local via oauth2-proxy ingress.yaml so it goes to the zero-trust-local-platform realm
-# That is why the following ingress.yaml is not used
-
-#apiVersion: networking.k8s.io/v1
-#kind: Ingress
-#metadata:
-#  name: keycloak-auth
-#  namespace: keycloak
-#  annotations:
-#    cert-manager.io/cluster-issuer: local-root-ca
-#    cert-manager.io/duration: 168h
-#    cert-manager.io/renew-before: 24h
-#
-#spec:
-#  ingressClassName: nginx
-#  rules:
-#  - host: auth.local
-#    http:
-#      paths:
-#      - path: /
-#        pathType: Prefix
-#        backend:
-#          service:
-#            name: keycloak
-#            port:
-#              number: 80
-#  tls:
-#  - hosts:
-#    - auth.local
-#    secretName: auth-tls
-</file>
-
 <file path="k8s/platform/metallb/ip-pool.yaml">
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
@@ -385,6 +287,108 @@ kind: L2Advertisement
 metadata:
   name: default
   namespace: metallb-system
+</file>
+
+<file path="k8s/platform/oauth2-proxy/ingress.yaml">
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: oauth2-proxy
+  namespace: oauth2-proxy
+  annotations:
+    cert-manager.io/cluster-issuer: local-root-ca
+    cert-manager.io/duration: 168h
+    cert-manager.io/renew-before: 24h
+    # --- ADD THESE TO FIX THE 502 ---
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
+    nginx.ingress.kubernetes.io/proxy-busy-buffers-size: "32k"
+    # --------------------------------
+
+spec:
+  ingressClassName: nginx
+
+  tls:
+    - hosts:
+        - auth.local
+      secretName: auth-tls
+
+  rules:
+    - host: auth.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: oauth2-proxy
+                port:
+                  number: 80
+</file>
+
+<file path="k8s/platform/oauth2-proxy/values.yaml">
+config:
+  clientID: "oauth2-proxy"
+  existingSecret: "oauth2-proxy-secrets"
+
+extraArgs:
+  provider: oidc
+  oidc-issuer-url: https://keycloak.local/realms/zero-trust-local-platform
+  redirect-url: https://auth.local/oauth2/callback
+
+  http-address: "0.0.0.0:4180"
+  
+  ssl-insecure-skip-verify: "true"
+  insecure-oidc-skip-issuer-verification: "true"
+
+  email-domain: "*"
+  skip-provider-button: "true"
+
+
+  upstream: "static://200"
+  #upstream: ""
+  #upstream: "http://fastapi-service.default.svc.cluster.local:80"
+
+  #cookie-domain: "auth.local"
+  #cookie-domain: ".local"
+  cookie-secure: "true"
+  cookie-samesite: "lax"
+  cookie-path: "/"
+
+
+
+
+  # oauth2-proxy must be aware it is behind ingress proxy
+  reverse-proxy: "true"
+
+
+  #trusted-ip: "0.0.0.0/0"
+
+
+  real-client-ip-header: "X-Forwarded-For"
+
+  pass-authorization-header: "true"
+  set-authorization-header: "true"
+  set-xauthrequest: "true"
+  pass-access-token: "true"
+  pass-user-headers: "true"
+
+
+  #whitelist-domain: "fastapi.local"
+  whitelist-domain: ".local"
+
+  #skip-jwt-bearer-tokens: "true"
+
+hostAliases:
+  - ip: "192.168.65.240"
+    hostnames:
+      - "keycloak.local"
+
+service:
+  type: ClusterIP
+
+ingress:
+  enabled: false   # IMPORTANT: we are managing ingress manually
 </file>
 
 <file path="repo_structure.txt">
@@ -443,6 +447,39 @@ metadata:
 spec:
   ca:
     secretName: root-ca-secret
+</file>
+
+<file path="k8s/platform/keycloak/ingress-zero-trust-local-platform-realm.yaml">
+# keycloak-auth ingress is not being used as we wanted to follow the routing of auth.local via oauth2-proxy ingress.yaml so it goes to the zero-trust-local-platform realm
+# That is why the following ingress.yaml is not used
+
+#apiVersion: networking.k8s.io/v1
+#kind: Ingress
+#metadata:
+#  name: keycloak-auth
+#  namespace: keycloak
+#  annotations:
+#    cert-manager.io/cluster-issuer: local-root-ca
+#    cert-manager.io/duration: 168h
+#    cert-manager.io/renew-before: 24h
+#
+#spec:
+#  ingressClassName: nginx
+#  rules:
+#  - host: auth.local
+#    http:
+#      paths:
+#      - path: /
+#        pathType: Prefix
+#        backend:
+#          service:
+#            name: keycloak
+#            port:
+#              number: 80
+#  tls:
+#  - hosts:
+#    - auth.local
+#    secretName: auth-tls
 </file>
 
 <file path="k8s/platform/keycloak/values.yaml">
@@ -526,6 +563,12 @@ metadata:
     cert-manager.io/cluster-issuer: local-root-ca
     cert-manager.io/duration: 168h
     cert-manager.io/renew-before: 24h
+    #nginx.ingress.kubernetes.io/auth-url: "https://auth.local/oauth2/auth"
+    #nginx.ingress.kubernetes.io/auth-url: "http://oauth2-proxy.oauth2-proxy.svc.cluster.local:4180/oauth2/auth"
+    nginx.ingress.kubernetes.io/auth-url: "http://oauth2-proxy.oauth2-proxy.svc.cluster.local/oauth2/auth"
+    nginx.ingress.kubernetes.io/auth-signin: "https://auth.local/oauth2/start?rd=$scheme://$host$request_uri"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,Authorization"
+
 spec:
   ingressClassName: nginx
   tls:

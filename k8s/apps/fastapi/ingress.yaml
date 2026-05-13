@@ -6,14 +6,21 @@ metadata:
     cert-manager.io/cluster-issuer: local-root-ca
     cert-manager.io/duration: 168h
     cert-manager.io/renew-before: 24h
+    #nginx.ingress.kubernetes.io/auth-url: "https://auth.local/oauth2/auth"
+    #nginx.ingress.kubernetes.io/auth-url: "http://oauth2-proxy.oauth2-proxy.svc.cluster.local:4180/oauth2/auth"
+    nginx.ingress.kubernetes.io/auth-url: "http://oauth2-proxy.oauth2-proxy.svc.cluster.local/oauth2/auth"
+    nginx.ingress.kubernetes.io/auth-signin: "https://auth.test/oauth2/start?rd=$scheme://$host$request_uri"
+    #nginx.ingress.kubernetes.io/auth-response-headers: Authorization
+    nginx.ingress.kubernetes.io/auth-response-headers: "Authorization,X-Auth-Request-User,X-Auth-Request-Email"
+
 spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - fastapi.local
+    - fastapi.test
     secretName: fastapi-tls
   rules:
-  - host: fastapi.local
+  - host: fastapi.test
     http:
       paths:
       - path: /
