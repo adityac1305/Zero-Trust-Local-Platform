@@ -11,10 +11,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - keycloak.test
+        - keycloak.app.test
       secretName: keycloak-tls
   rules:
-    - host: keycloak.test
+    - host: keycloak.app.test
       http:
         paths:
           - path: /
